@@ -4,6 +4,7 @@ import config from "../config";
 import { UserJWT, Role } from "../types";
 import { requireAuth } from "../middleware/auth";
 import { hashPassword, verifyPassword } from "../utils/password";
+import { db } from "../db/db";
 
 // create auth router
 const router = Router();
@@ -49,36 +50,28 @@ router.post('/login', async (req, res) => {
 
     const normalizedEmail = email.toLowerCase().trim();
 
-    //----------------------------------------------------------------------
-    // USE SQL TO FIND USER AND VALIDATE IT AND REMOVE THIS TEMP ADMIN USER
-    const role : Role = "student";
+    const user = await db
+        .selectFrom("Users")
+        .selectAll()
+        .where("email", "=" ,normalizedEmail)
+        .executeTakeFirst()
 
-    const tempUser = {
-        id: "2026100",
-        name: "User",
-        email: "test@gmail.com",
-        hashed_password: "hashed_pass",
-        role: role,
-        isValid: true
-    }
-    //-----------------------------------------------------------------------
-
-    if(!tempUser)
+    if(!user)
         return res.status(401).json({error: "Invalid credentials..."})
 
-    if(!tempUser.isValid)
+    if(!user.is_valid)
         return res.status(403).json({error: "User is Banned..."});
 
-    const verified = verifyPassword(password, tempUser.hashed_password);
+    const verified = verifyPassword(password, user.hashed_password);
 
     if(!verified)
         return res.status(401).json({error: "Invalid Password..."});
 
     // build JWT payload (identity card)
     const payload: UserJWT = {
-        sub: tempUser.id,
-        email: tempUser.email,
-        role: tempUser.role
+        sub: user.id,
+        email: user.email,
+        role: user.role
     };      
 
     //sign JWT with secret key
@@ -90,7 +83,7 @@ router.post('/login', async (req, res) => {
         .setExpirationTime("10h")
         .sign(new TextEncoder().encode(JWT_SECRET));
 
-    return res.json({Token: token, Id: tempUser.id, Email: email});
+    return res.json({Token: token, Id: user.id, Email: email});
 });
 
 // return who is currently logged it
