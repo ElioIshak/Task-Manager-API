@@ -12,7 +12,7 @@ export type User = {
 export type Task = {
   id: string;
   title: string;
-  completed: boolean;
+  status: boolean;
   ownerId: string;
   createdAt: number;
 }

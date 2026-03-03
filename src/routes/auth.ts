@@ -102,3 +102,5 @@ router.get('/me', requireAuth, (req, res) => {
         role: req.userJWT?.role
     });
 });
+
+export default router;

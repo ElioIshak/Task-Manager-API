@@ -1,7 +1,7 @@
 import type { RequestHandler } from "express";
 import * as jose from "jose";
 import config from "../config";
-import type { Role, UserJWT} from "../types";
+import type { UserJWT} from "../types";
 
 // middleware to check if request contains a token -> if it does verify it | else continue
 export const setUserJWT = (async (req, _res, next) => {
