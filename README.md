@@ -4,14 +4,14 @@
 
 **Project Name:** Task-Manager-Api  
 **Start Date:** March 2026  
-**Last Updated:** March 2026
-**Author:** Elio Ishak (CS student at AUB)  
+**Last Updated:** March 2026  
+**Author:** Elio Ishak (CS student at AUB)
 
 ---
 
-A simple backend REST API built with **Node.js, Express, TypeScript, and MySQL**.
+A simple backend REST API built with **Node.js, Express, TypeScript, PostgreSQL (Dockerized), and Kysely**.
 
-This project demonstrates JWT authentication, password hashing, protected routes, and relational database design.
+This project demonstrates JWT authentication, password hashing, protected routes, relational database design, and type-safe SQL querying without using a heavy ORM.
 
 ---
 
@@ -20,7 +20,8 @@ This project demonstrates JWT authentication, password hashing, protected routes
 - Node.js
 - Express
 - TypeScript
-- MySQL
+- PostgreSQL (running in Docker)
+- Kysely (type-safe SQL query builder)
 - bcrypt (password hashing)
 - jose (JWT)
 
@@ -34,6 +35,7 @@ This project demonstrates JWT authentication, password hashing, protected routes
 - Protected routes with middleware
 - CRUD operations for tasks
 - Task ownership enforcement
+- Manual SQL migrations
 
 ---
 
@@ -43,11 +45,10 @@ This project demonstrates JWT authentication, password hashing, protected routes
 
 ```sql
 CREATE TABLE users (
-  id INT AUTO_INCREMENT PRIMARY KEY,
+  id VARCHAR(11) PRIMARY KEY,
   email VARCHAR(255) NOT NULL UNIQUE,
-  password_hash VARCHAR(255) NOT NULL,
-  role ENUM('user', 'admin') DEFAULT 'user',
-  banned BOOLEAN DEFAULT FALSE,
+  hashed_password VARCHAR(255) NOT NULL,
+  is_valid BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ```
@@ -55,14 +56,20 @@ CREATE TABLE users (
 ### Tasks
 
 ```sql
+CREATE TYPE task_status AS ENUM ('TODO', 'IN_PROGRESS', 'DONE');
+
 CREATE TABLE tasks (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  title VARCHAR(255) NOT NULL,
-  completed BOOLEAN DEFAULT FALSE,
-  owner_id INT NOT NULL,
+  id VARCHAR(11) PRIMARY KEY,
+  title VARCHAR(200) NOT NULL,
+  description TEXT,
+  status task_status DEFAULT 'TODO',
+  user_id VARCHAR(11) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+CREATE INDEX idx_tasks_user_id ON tasks(user_id);
+CREATE INDEX idx_tasks_status ON tasks(status);
 ```
 
 ---
@@ -76,16 +83,30 @@ npm run dev
 
 ---
 
+## Running with Docker (PostgreSQL)
+
+Start PostgreSQL and Adminer:
+
+```bash
+docker compose up -d
+```
+
+Apply migration:
+
+```bash
+type src\db\migrations\001_init.sql | docker exec -i taskmanager-postgres psql -U admin -d taskmanager
+```
+
+---
+
 ## Environment Variables
 
 Create a `.env` file:
 
 ```
 JWT_SECRET=your_secret_key
-DB_HOST=localhost
-DB_USER=root
-DB_PASSWORD=your_password
-DB_NAME=task_manager
+DATABASE_URL=postgresql://admin:your_password@localhost:5432/taskmanager
+PORT=3000
 ```
 
 ---
