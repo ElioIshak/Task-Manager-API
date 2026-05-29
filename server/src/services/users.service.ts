@@ -64,7 +64,7 @@ export async function createUser(input: CreateUserInput) {
     if (input.password !== input.confirmationPass)
         throw Error ("The passwords must match!");
 
-    if (input.role === "student" && input.organizationId)
+    if (input.role === "member" && input.organizationId)
         await assertOrganizationExists(input.organizationId);
 
     const normalizedEmail = normalizeEmail(input.email);
@@ -90,9 +90,9 @@ export async function createUser(input: CreateUserInput) {
             })
             .executeTakeFirstOrThrow();
 
-        if (input.role === "student") {
+        if (input.role === "member") {
             await trx
-                .insertInto("Students")
+                .insertInto("OrganizationMembers")
                 .values({
                     user_id: userId,
                     organization_id: input.organizationId ?? null
@@ -118,18 +118,18 @@ export async function getCurrentUserProfile(userId: string) {
 
     const user = await getPublicUserById(userId);
 
-    if (user.role !== "student")
+    if (user.role !== "member")
         return { ...user, organization_id: null };
 
-    const student = await db
-        .selectFrom("Students")
+    const member = await db
+        .selectFrom("OrganizationMembers")
         .select("organization_id")
         .where("user_id", "=", userId)
         .executeTakeFirst();
 
     return {
         ...user,
-        organization_id: student?.organization_id ?? null
+        organization_id: member?.organization_id ?? null
     };
 }
 
@@ -212,8 +212,8 @@ export async function deleteOwnAccount(userId: string) {
     return user;
 }
 
-// update company function
-export async function updateUserCompany(userId: string, organizationId: string | null) {
+// update organization function
+export async function updateUserOrganization(userId: string, organizationId: string | null) {
     if (!userId)
         throw Error ("Invalid User!");
 
@@ -226,21 +226,21 @@ export async function updateUserCompany(userId: string, organizationId: string |
     if (!user)
         throw Error ("User not found!");
 
-    if (user.role !== "student")
-        throw Error ("Only students can belong to a company!");
+    if (user.role !== "member")
+        throw Error ("Only members can belong to an organization!");
 
     if (organizationId)
         await assertOrganizationExists(organizationId);
 
-    const student = await db
-        .updateTable("Students")
+    const member = await db
+        .updateTable("OrganizationMembers")
         .set({ organization_id: organizationId })
         .where("user_id", "=", userId)
         .returningAll()
         .executeTakeFirst();
 
-    if (!student)
-        throw Error ("Student profile not found!");
+    if (!member)
+        throw Error ("Organization member profile not found!");
 
     return getCurrentUserProfile(userId);
 }

@@ -5,13 +5,13 @@ import {
     deleteOwnAccount,
     getCurrentUserProfile,
     updateOwnProfile,
-    updateUserCompany,
+    updateUserOrganization,
     type CreateUserInput,
     type UpdateUserProfileInput
 } from "../services/users.service";
 
 function isRole(role: unknown): role is Role {
-    return role === "student" || role === "organization";
+    return role === "member" || role === "organization";
 }
 
 function getUserId(req: Request) {
@@ -127,19 +127,19 @@ export async function deleteOwnAccountController(req: Request, res: Response) {
     }
 };
 
-// update user company controller
-export async function updateUserCompanyController(req: Request, res: Response) {
+// update user organization controller
+export async function updateUserOrganizationController(req: Request, res: Response) {
     try {
         const { organizationId } = req.body;
 
         if (organizationId !== null && organizationId !== undefined && typeof organizationId !== "string")
             throw Error ("Organization id must be a string!");
 
-        const user = await updateUserCompany(getUserId(req), organizationId ?? null);
+        const user = await updateUserOrganization(getUserId(req), organizationId ?? null);
 
         res.status(200).json(user);
     }
     catch (error) {
-        sendControllerError(res, error, "Failed to update company!");
+        sendControllerError(res, error, "Failed to update organization!");
     }
 };

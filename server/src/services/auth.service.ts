@@ -24,7 +24,7 @@ function normalizeEmail(email: string) {
 
 // role validation function
 function isRole(role: string): role is Role {
-    return role === "student" || role === "organization";
+    return role === "member" || role === "organization";
 }
 
 // signup function
@@ -71,9 +71,9 @@ export async function signup(
             .returningAll()
             .executeTakeFirstOrThrow();
         
-        if (role == "student") {
+        if (role == "member") {
             await trx
-                .insertInto("Students")
+                .insertInto("OrganizationMembers")
                 .values({
                     user_id: userId,
                     organization_id: organizationId ?? null,
@@ -133,4 +133,3 @@ export async function login(email: string, password: string) {
 
     return {user: user, token: token};
 };
-

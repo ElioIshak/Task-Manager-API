@@ -2,7 +2,7 @@ import type { Generated } from "kysely";
 
 // Types
 
-export type Role = "student" | "organization";
+export type Role = "member" | "organization";
 export type Status = "TODO" | "IN_PROGRESS" | "COMPLETED";
 export type Priority = "LOW" | "MEDIUM" | "HIGH";
 
@@ -46,7 +46,7 @@ export interface OrganizationsTable {
   user_id: string;
 };
 
-export interface StudentsTable {
+export interface OrganizationMembersTable {
   user_id: string;
   organization_id: string | null;
 };
@@ -54,6 +54,8 @@ export interface StudentsTable {
 export interface TasksTable {
   id: string;
   user_id: string;
+  organization_id: string | null;
+  assigned_to: string | null;
   title: string;
   description: string | null;
   status: Status;
@@ -65,6 +67,6 @@ export interface TasksTable {
 export interface Database {
   Users: UsersTable;
   Organizations: OrganizationsTable;
-  Students: StudentsTable;
+  OrganizationMembers: OrganizationMembersTable;
   Tasks: TasksTable;
 };

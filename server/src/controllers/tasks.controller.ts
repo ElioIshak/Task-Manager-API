@@ -1,11 +1,15 @@
 import type { Request, Response } from "express";
 import type { Priority, Status } from "../types";
 import {
+    createOrganizationTask,
     createTask,
     deleteTask,
+    getAvailableOrganizationTasks,
+    getOrganizationTasksForUser,
     getTaskById,
     getTasksByUser,
     markTaskAsCompleted,
+    takeOrganizationTask,
     updateTask,
     type GetTasksOptions,
     type UpdateTaskInput
@@ -62,6 +66,41 @@ function sendControllerError(res: Response, error: unknown, fallback: string) {
     res.status(status).json({ message });
 }
 
+function buildTaskOptions(req: Request) {
+    const { status, search, sortBy, sortOrder } = req.query;
+    const options: GetTasksOptions = {};
+
+    if (status !== undefined) {
+        if (!isStatus(status))
+            throw Error ("Invalid status!");
+
+        options.status = status;
+    }
+
+    if (search !== undefined) {
+        if (typeof search !== "string")
+            throw Error ("Search must be a string!");
+
+        options.search = search;
+    }
+
+    if (sortBy !== undefined) {
+        if (!isTaskSortBy(sortBy))
+            throw Error ("Invalid sort field!");
+
+        options.sortBy = sortBy;
+    }
+
+    if (sortOrder !== undefined) {
+        if (!isSortOrder(sortOrder))
+            throw Error ("Invalid sort order!");
+
+        options.sortOrder = sortOrder;
+    }
+
+    return options;
+}
+
 // create task controller
 export async function createTaskController(req: Request, res: Response) {
     try {
@@ -103,46 +142,92 @@ export async function createTaskController(req: Request, res: Response) {
     }
 };
 
+// create organization task controller
+export async function createOrganizationTaskController(req: Request, res: Response) {
+    try {
+        const {
+            title,
+            description = null,
+            status = "TODO",
+            priority = "MEDIUM",
+            dueDate
+        } = req.body;
+
+        if (typeof title !== "string")
+            throw Error ("Title must be a string!");
+
+        if (description !== null && description !== undefined && typeof description !== "string")
+            throw Error ("Description must be a string!");
+
+        if (!isStatus(status))
+            throw Error ("Invalid status!");
+
+        if (!isPriority(priority))
+            throw Error ("Invalid priority!");
+
+        const parsedDueDate = toDate(dueDate, "due date") ?? new Date();
+        const task = await createOrganizationTask(
+            getUserId(req),
+            title,
+            description,
+            status,
+            priority,
+            parsedDueDate,
+            new Date()
+        );
+
+        res.status(201).json(task);
+    }
+    catch (error) {
+        sendControllerError(res, error, "Failed to create organization task!");
+    }
+};
+
 // get current user's tasks controller
 export async function getMyTasksController(req: Request, res: Response) {
     try {
-        const { status, search, sortBy, sortOrder } = req.query;
-        const options: GetTasksOptions = {};
-
-        if (status !== undefined) {
-            if (!isStatus(status))
-                throw Error ("Invalid status!");
-
-            options.status = status;
-        }
-
-        if (search !== undefined) {
-            if (typeof search !== "string")
-                throw Error ("Search must be a string!");
-
-            options.search = search;
-        }
-
-        if (sortBy !== undefined) {
-            if (!isTaskSortBy(sortBy))
-                throw Error ("Invalid sort field!");
-
-            options.sortBy = sortBy;
-        }
-
-        if (sortOrder !== undefined) {
-            if (!isSortOrder(sortOrder))
-                throw Error ("Invalid sort order!");
-
-            options.sortOrder = sortOrder;
-        }
-
-        const tasks = await getTasksByUser(getUserId(req), options);
+        const tasks = await getTasksByUser(getUserId(req), buildTaskOptions(req));
 
         res.status(200).json(tasks);
     }
     catch (error) {
         sendControllerError(res, error, "Failed to get tasks!");
+    }
+};
+
+// get organization tasks controller
+export async function getOrganizationTasksController(req: Request, res: Response) {
+    try {
+        const tasks = await getOrganizationTasksForUser(getUserId(req), buildTaskOptions(req));
+
+        res.status(200).json(tasks);
+    }
+    catch (error) {
+        sendControllerError(res, error, "Failed to get organization tasks!");
+    }
+};
+
+// get available organization tasks controller
+export async function getAvailableOrganizationTasksController(req: Request, res: Response) {
+    try {
+        const tasks = await getAvailableOrganizationTasks(getUserId(req), buildTaskOptions(req));
+
+        res.status(200).json(tasks);
+    }
+    catch (error) {
+        sendControllerError(res, error, "Failed to get available organization tasks!");
+    }
+};
+
+// take organization task controller
+export async function takeOrganizationTaskController(req: Request, res: Response) {
+    try {
+        const task = await takeOrganizationTask(getUserId(req), getTaskId(req));
+
+        res.status(200).json(task);
+    }
+    catch (error) {
+        sendControllerError(res, error, "Failed to take organization task!");
     }
 };
 
