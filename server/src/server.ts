@@ -6,6 +6,7 @@ import api from "./api";
 const app = express();
 const port = config.PORT || 3000;
 
+app.use(express.json());
 app.use('/api', api);
 
 app.listen(port, () => {
